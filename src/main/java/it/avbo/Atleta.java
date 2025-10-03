@@ -10,6 +10,12 @@ public class Atleta extends Persona {
         this.sport = sport;
     }
 
+    @Override
+    public void saluta() {
+        super.saluta();
+        System.out.println("Sono un atleta e il mio sport è " + sport);
+    }
+
     // Implementazione personalizzata del metodo astratto
     @Override
     public int calcolaFabbisognoCalorico() {
