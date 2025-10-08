@@ -20,4 +20,8 @@ public class Impiegato extends Persona {
     public int calcolaFabbisognoCalorico() {
         return (int)(FABBISOGNO_CALORICO * 0.8);
     }
+
+    public void stampaCedolini() {
+        System.out.println("blahblah");
+    }
 }

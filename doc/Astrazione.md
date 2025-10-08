@@ -279,7 +279,7 @@ a compile-time.
 
 Un altro elemento fondamentale che si collega al concetto di polimorfismo è quello di **interfaccia**.
 
-Un’interfaccia in Java non è una classe, ma un costrutto speciale che serve a definire un insieme di 
+Un’interfaccia in Java _non_ è una classe, ma un costrutto speciale che serve a definire un insieme di 
 **metodi astratti** (detti anche _skeleton methods_) che altre classi si impegnano a implementare.
 
 Possiamo considerarla come una sorta di "scheletro": non contiene dati né implementazioni concrete 
@@ -297,26 +297,176 @@ Nella sua "evoluzione" il linguaggio Java ha visto l'introduzione di alcuni cost
 in parte non del tutto coerenti con la definizione di cui sopra, anche se di fatto non modificano la loro funzione
 principale: definire contratti da rispettare.
 
- - Fino a Java 7 le interfacce potevano contenere solo metodi astratti e costanti (_public static final_), appunto
+ - Fino a Java 7 le interfacce potevano contenere solo metodi astratti e costanti (`public static final`), appunto
    come sopra definito. 
  - Da Java 8 sono stati introdotti i metodi default (con implementazione di base) e i metodi static. 
- - Da Java 9 è stata aggiunta anche la possibilità di definire metodi private nelle interfacce, utili come metodi 
+ - Da Java 9 è stata aggiunta anche la possibilità di definire metodi `private` nelle interfacce, utili come metodi 
    di supporto interni.
 
+Le interfacce sono state introdotte in primo luogo per stabilire contratti chiari e condivisi, garantendo interoperabilità 
+e disaccoppiamento tra le componenti di un sistema software, ma contestualmente consentono anche di "emulare"
+l'ereditarietà multipla.
 
+Definire contratti chiari e condivisi è di fondamentale importanza per definire una sorta di _linguaggio comune_
+tra classi diversi, anche appartenenti a gerarchie distinte, affinché gli oggetti da esse ottenuti possano 
+(laddove occorre) essere utilizzati in modo uniforme.
+Ad esempio, l'interfaccia `Comparable` viene implementata da varie classi di base della piattaforma Java, con
+l'obiettivo di consentire l'ordinamento di oggetti.
+Tale interfaccia definisce il metodo `int compareTo()` che deve restituire:
+ - un intero < 0 se l'oggetto corrente è "minore" dell'oggetto specificato come argomento
+ - 0 se l'oggetto corrente è uguale all'oggetto specificato come argomento
+ - un intero > 0 se l'oggetto corrente è "maggiore" dell'oggetto specificato come argomento
 
-Java (come anche C# e la maggior parte dei linguaggi di programmazione OO) supporta **solo l'ereditarietà singola** 
+Qualsiasi oggetto implementi questa interfaccia, deve fornire un'implementazione per il metodo `compareTo` e
+qualsiasi oggetto che implementa l'interfaccia `Comparable` può essere appunto "confrontato" secondo un
+opportuno criterio di ordinamento totale con altri oggetti dello stesso tipo.
+Pertanto, nella piattaforma sono stati previsti degli algoritmi di ordinamento, che possono funzionare su 
+qualsiasi collezione di oggetti `Comparable`, perché appunto al loro interno possono invocare il metodo
+`compareTo` che per contratto è stato definito e implementato in ogni oggetto della collezione da ordinare.
+
+Inoltre, le intefacce supportano il polimorfirmo e consentono dunque di ottenere astrazione e disaccoppiamento
+tra i diversi componenti del sistema software.
+Ad esempio, possiamo scrivere:
+```java
+public class Allenatore {
+    ...
+    public void allena(IAtleta atleta) {
+        atleta.faiAllenamento(2); // esempio
+    }
+}
+
+Allenatore allenatore = new Allenatore();
+Persona mario = new ImpiegatoAtleta(...);
+mario.saluta();
+
+Persona luca = new Atleta(...);
+luca.saluta();
+
+// dal punto di vista dell'allenatore non mi interessa di che tipo
+// è la Persona, mi interessa solo che sia un Atleta, ossia che 
+// abbia definito ed implementato metodo `faiAllenamento`
+allenatore.allena(mario);
+allenatore.allena(luca);
+
+```
+Infine, vediamo come le interfacce permettono un'_emulazione_ dell'ereditarietà multipla.
+Java infatti, (come anche C# e la maggior parte dei linguaggi di programmazione OO) supporta **solo l'ereditarietà singola** 
 tra classi: una classe può estendere **una sola** classe base. 
 Questo può sembrare un limite, ma in realtà evita complicazioni e gravi errori di progettazione del software.
-Uno dei problemi più comuni nei linguaggi (come ad esempio C++) che invece supportano l'ereditarietà multipla
-(una classe può derivare da più classi), è quello che va sotto il nome di **Diamond Problem** (il problema del diamante).
 
-Esso si verifica quando una classe eredita la stessa caratteristica da più superclassi diverse.
+Ad esempio, uno dei problemi più comuni nei linguaggi che supportano l'ereditarietà multipla, ossia dove una classe può
+derivare da più classi (come ad esempio C++), è quello che va sotto il nome di **Diamond Problem** 
+(il problema del diamante).
+Esso si verifica quando una classe eredita la _stessa caratteristica_ da più superclassi diverse.
 
------
+![](DiamondProblem.png)
 
-Le interfacce risolvono questa limitazione:
+Vediamo nel dettaglio in cosa consiste questo problema: nella classe `ImpiegatoAtleta`, da quale classe sono ereditati 
+gli attributi _nome_, _cognome_ ed _età_? `ImpiegatoAtleta` è infatti una `Persona` e deve avere tali attributi.
 
-Una classe può implementare più interfacce contemporaneamente.
+Inoltre, consideriamo il metodo `saluta()`, che è stato ridefinito sia in `Impiegato` sia in `Atleta`(v. sopra): quale
+delle due implementazioni viene eseguita quando lo si invoca su un'istanza di `ImpiegatoAtleta`?
 
-In questo modo, si ottiene una forma di ereditarietà multipla del comportamento, senza ereditare duplicazioni di stato o conflitti di campi.
+È evidente come l'ereditarietà multipla tra classi può dare luogo ad ambiguità e in generale a problemi non banali da
+risolvere. Le interfacce ci permettono di "aggirare" questa limitazione, in quanto ogni classe può **implementare più 
+interfacce contemporaneamente**.
+
+**NOTA BENE**: non è una forma di "vera" ereditarietà multipla, ma una sorta di "emulazione" che ci permette di realizzare
+una sorta di **ereditarietà multipla del comportamento**, evitando di ereditare campi duplicati e/o implementazioni di
+metodi in conflitto.
+
+Proviamo a fare un esempio, aggiungendo alcuni metodi "specifici" per l'Atleta, ma prima definendoli 
+nell'interfaccia `IAtleta`:
+
+```java
+public interface IAtleta {
+    void faiAllenamento(int ore);
+    int getRisultatoGara(String nomeGara); // posizione 1,2,3...
+}
+
+public class Atleta extends Persona implements IAtleta {
+    private String sport;
+
+    public Atleta(String nome, String cognome, int eta, String sport) {
+        super(nome, cognome, eta);
+        this.sport = sport;
+    }
+
+    @Override
+    public void saluta() {
+        super.saluta();
+        System.out.println("Sono un atleta e il mio sport è " + sport);
+    }
+
+    // Implementazione personalizzata del metodo astratto
+    @Override
+    public int calcolaFabbisognoCalorico() {
+        return (int)(FABBISOGNO_CALORICO * 1.5); // oppure direttamente return 3000;
+    }
+
+    @Override
+    public void faiAllenamento(int ore) {
+        System.out.println("Mi sono allenato per " + ore + " ore! Sono cotto...");
+    }
+
+    @Override
+    public int getRisultatoGara(String nomeGara) {
+        // suppongo di reperire il dato da un "registro" dei risultati delle gare che
+        // l'atleta ha effettuato
+        return 3; // comunque sul podio.. niente male!
+    }
+}
+```
+
+In questo modo stiamo stabilendo che ogni oggetto con interfaccia IAtleta, dovrà fornire le funzionalità
+ - `faiAllenamento`
+ - `getRisultatoGara`
+
+Queste funzionalità saranno implementate da qualche altra classe, che saprà comportarsi come un `IAtleta`,
+come appunto previsto dal contratto definito dall'interfaccia stessa.
+È chiaro che la classe più naturale a implementare questi comportamenti è la classe `Atleta`, che quindi
+_implementa_ l'interfaccia `IAtleta`.
+
+Tuttavia, noi vorremmo modellare un `ImpiegatoAtleta`, ossia un Impiegato -- e quindi una Persona --  che però
+si comporta _anche_ come un Atleta.
+Per risolvere questo problema, si può estendere la classe Impiegato e contemporaneamente implementare l'interfaccia
+`IAtleta`:
+```java
+public class ImpiegatoAtleta extends Impiegato implements IAtleta {
+
+    private String sport;
+
+    public ImpiegatoAtleta(String nome, String cognome, int eta, String mansione, String sport) {
+        super(nome, cognome, eta, mansione);
+        this.sport = sport;
+    }
+
+    @Override
+    public int calcolaFabbisognoCalorico() {
+        // suppongo che il fabbisogno sia un po' inferiore a quello di un atleta di professione
+        return (int)(FABBISOGNO_CALORICO * 1.2);
+    }
+
+    @Override
+    public void saluta() {
+        super.saluta();
+        System.out.println("Sono anche un atleta e il mio sport è: " + sport);
+    }
+
+    @Override
+    public void faiAllenamento(int ore) {
+        System.out.println("Mi sono allenato per " + ore + " ore: non voglio stare sempre seduto!");
+    }
+
+    @Override
+    public int getRisultatoGara(String nomeGara) {
+        return 5;
+    }
+}
+```
+In questo modo abbiamo utiilizzato l'ereditarietà singola per derivare da `Persona` campi e metodi comuni, ma poi abbiamo
+implementato _anche_ l'interfaccia `IAtleta`, per aggiungere agli oggetti di tipo ImpiegatoAtleta anche comportamenti che
+sono propri dell'atleta, come `faiAllenamento` e `getRisultatoGara`.
+
+In Java (così come in C#), ogni classe può implementare molteplici interfacce, implementando vari comportamenti definiti
+per contratto.
